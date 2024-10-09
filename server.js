@@ -1,13 +1,16 @@
 require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
-
 const mongoose = require("mongoose");
 const { getVFSAccounts } = require("./controller");
 const token = process.env.TELEGRAM_TOKEN;
 const mongoUri = process.env.MONGO_URI;
-
 const User = require("./models/user");
 const VFS_account = require("./models/vfs_account");
+const { links } = require("./links");
+const { newBrowser } = require("./controllers");
+
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 console.log("working");
 
@@ -33,7 +36,7 @@ const options = {
         { text: "Add an account", callback_data: "add_account" },
         { text: "View added accounts", callback_data: "view_accounts" },
       ],
-      [{ text: "Button 3", callback_data: "button3" }],
+      [{ text: "Apply for Visa", callback_data: "apply" }],
     ],
   },
 };
@@ -83,8 +86,40 @@ bot.on("callback_query", async (callbackQuery) => {
     } else {
       bot.sendMessage(chatId, "You have no added accounts.", options);
     }
+  } else if (data === "apply") {
+    const response = await Apply(userId, chatId);
+
+    bot.sendMessage(chatId, response.message)
   }
 });
+
+async function Apply(userId, chatId) {
+
+  const user = await User.findOne({ userId }).populate("accounts");
+
+  if (!user) {
+    return { success: false, message: "No user found. please restart the bot to register a new account!" }
+  }
+
+  if (user.accounts && !user.accounts.length > 0) {
+    return { success: false, message: "No accounts added please add an account to apply for the visa!" }
+  }
+
+  const vfs_accounts = user.accounts;
+  for (let user of vfs_accounts) {
+    for (let link of links) {
+      const response = await newBrowser(user, link);
+
+      if (response && !response.success) {
+        bot.sendMessage(chatId, response.message)
+      }
+    }
+  }
+
+
+
+
+}
 
 const addAccount = async (chatId, userId) => {
   bot.sendMessage(
@@ -92,7 +127,6 @@ const addAccount = async (chatId, userId) => {
     "Please provide the email and password of your VFS accounts in the following format:\n\n`email1:password1`\n`email2:password2`\n\nSeparate multiple entries by new lines."
   );
 
-  // Wait for user's response for email and password
   bot.once("message", async (msg) => {
     const text = msg.text;
     const username = msg.from.first_name;
@@ -102,7 +136,6 @@ const addAccount = async (chatId, userId) => {
     let validEntries = [];
     let existingAccount = [];
 
-    // Parse and validate entries
     for (let entry of entries) {
       if (entry.includes(":")) {
         const [email, password] = entry.split(":");
@@ -204,6 +237,181 @@ const addAccount = async (chatId, userId) => {
     });
   });
 };
+
+
+const newBrowser = async (user, url) => {
+  const { browser } = await connect({
+    headless: false,
+
+    args: [],
+
+    customConfig: {},
+
+    turnstile: true,
+
+    connectOption: {},
+    fingerprint: true,
+
+    disableXvfb: false,
+    ignoreAllFlags: false,
+    timeout: 0,
+  });
+  const page = await browser.newPage();
+
+  const client = await page.createCDPSession();
+  await client.send('Network.clearBrowserCookies');
+
+  await client.send('Network.clearBrowserCache');
+
+  await page.setDefaultTimeout(0);
+  await page.setDefaultNavigationTimeout(0);
+
+  await page.goto(url.link, {
+    waitUntil: "networkidle2",
+  });
+  console.log("Navigated to VFS Login form page");
+
+  const cookies = await page.waitForSelector(
+    "button#onetrust-reject-all-handler"
+  );
+  await delay(2000);
+
+  if (cookies) {
+    await cookies.click();
+  }
+
+  await page.waitForSelector("input[formcontrolname='username']");
+  await page.waitForSelector("input[formcontrolname='password']");
+
+
+  await page.evaluate(
+    async (email, password) => {
+      const typeWithDelay = async (selector, text, delay) => {
+        const element = document.querySelector(selector);
+        if (!element) return;
+
+        // Trigger click event
+        element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+        for (const char of text) {
+          element.value += char;
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      }
+
+      await typeWithDelay("input[formcontrolname='username']", email, 100);
+      await typeWithDelay("input[formcontrolname='password']", password, 100);
+    },
+    user.email,
+    user.password
+  );
+
+  await page.click("input[formcontrolname='username']");
+  await page.keyboard.press("Backspace");
+  await page.keyboard.down("Control");
+  await page.keyboard.press("z");
+  await page.keyboard.up("Control");
+
+  await page.click("input[formcontrolname='password']");
+
+  await page.keyboard.press("Backspace");
+
+  await page.keyboard.down("Control");
+  await page.keyboard.press("z");
+  await page.keyboard.up("Control");
+
+  await delay(2000);
+
+  let attempts = 0;
+  const maxRetries = 5;
+
+  while (attempts < maxRetries) {
+    try {
+      const submitButton = await page.waitForSelector("button.mat-focus-indicator");
+      await submitButton.click();
+      await page.waitForNavigation({ timeout: 7000 });
+      console.log("Successfully clicked the submit button");
+      break;
+    } catch (error) {
+      attempts++;
+      console.log(`Attempt ${attempts} failed. Retrying...`);
+      if (attempts >= maxRetries) {
+        console.log("Max retries reached. Returning error.");
+
+        await browser.close();
+        console.log(`Failed to login on ${url.name} with the account: ${user.email}`)
+        return { success: false, message: `Failed to login on ${url.name} with the account: ${user.email}` };
+      }
+    }
+  }
+
+  await page.waitForNavigation();
+
+  await delay(2000);
+
+  await page.evaluate(() => {
+    document.querySelector('button.mat-raised-button').click();
+  });
+
+  console.log("navigated!");
+
+  await delay(2000);
+
+  console.log("selecting the inputs!");
+
+  await delay(10000)
+
+  const visaCenterSelect = await page.$('mat-select[formcontrolname="centerCode"]');
+  await visaCenterSelect.click();
+  await page.waitForSelector('mat-option');
+  const visaCenterOptions = await page.$$('mat-option');
+  await visaCenterOptions[0].click(); // Selects the first option
+
+  await delay(10000);
+
+  const visaCategorySelect = await page.$('mat-select[formcontrolname="selectedSubvisaCategory"]');
+  await visaCategorySelect.click();
+  await page.waitForSelector('mat-option');
+  const visaCategoryOptions = await page.$$('mat-option');
+  await visaCategoryOptions[1].click();
+
+
+
+  await delay(10000);
+
+
+  const visaSubCategorySelect = await page.$('mat-select[formcontrolname="visaCategoryCode"]');
+  await visaSubCategorySelect.click();
+  await page.waitForSelector('mat-option');
+  const visaSubCategoryOptions = await page.$$('mat-option');
+  await visaSubCategoryOptions[1].click();
+
+
+  await delay(4000)
+  const continueBtn = await page.$("mat-focus-indicator.btn.mat-btn-lg.btn-block.btn-brand-orange.mat-raised-button.mat-button-base.mat-button-disabled");
+
+  const htmlEl = await page.$("html");
+
+  const pageurl = await page.url();
+
+  const htmlText = await page.evaluate(el => el.innerText, htmlEl); // Extract innerText from htmlEl
+
+  if (pageurl.includes("/application-detail") &&
+    !htmlText.includes('No appointment slots are currently available') &&
+    !continueBtn) {
+
+
+    await page.evaluate(() => {
+      document.querySelector('button.mat-focus-indicator').click();
+    });
+
+    await delay(10000);
+
+    await page.locator("#mat-input-5").fill("John doe")
+  } else {
+    console.log("no slots available!");
+  }
+}
 
 bot.on("polling_error", (error) => {
   console.log(`Polling error: ${error.code}: ${error.message}`);
