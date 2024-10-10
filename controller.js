@@ -11,7 +11,7 @@ async function getVFSAccounts(userId) {
 
     return user.accounts;
   } catch (err) {
-    console.error("Error fetching email-passwords:", err);
+    return { success: false, message: `Error fetching email-passwords: \n ${err}` }
   }
 }
 const createUserAccount = async (userId, name) => {
@@ -24,7 +24,9 @@ const createUserAccount = async (userId, name) => {
     await user.save();
 
     return user;
-  } catch (err) {}
+  } catch (err) {
+    return { success: false, message: `Error creating a new account: \n ${err}` }
+  }
 };
 
 module.exports = { getVFSAccounts, createUserAccount };

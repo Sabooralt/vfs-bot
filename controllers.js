@@ -1,330 +1,331 @@
 const { connect } = require("puppeteer-real-browser");
 require("dotenv").config();
-const User = require("./models/user");
-const Account = require("./models/vfs_account")
+
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const { links } = require("./links")
-
-async function Apply(userId) {
-
-  const user = await User.findOne({ userId }).populate("accounts");
-
-  if (!user) {
-    return { success: false, message: "No user found. please restart the bot to register a new account!" }
-  }
-
-  if (user.accounts && !user.accounts.length > 0) {
-    return { success: false, message: "No accounts added please add an account to apply for the visa!" }
-  }
-
-  const vfs_accounts = user.accounts;
-  for (let user of vfs_accounts) {
-    for (let link of links) {
-      const response = await newBrowser(user, link);
-    }
-  }
-
-
-
-
-}
-
 const newBrowser = async (user, url) => {
-  const { browser, page } = await connect({
-    headless: false,
+  try {
 
-    args: [],
+    const { browser, page } = await connect({
+      headless: true,
 
-    customConfig: {},
+      args: [],
 
-    turnstile: true,
+      customConfig: {},
 
-    connectOption: {},
-    fingerprint: true,
+      turnstile: true,
 
-    disableXvfb: false,
-    ignoreAllFlags: false,
-    timeout: 0,
-  });
+      connectOption: {},
+      fingerprint: true,
 
-  const client = await page.createCDPSession();
-  await client.send('Network.clearBrowserCookies');
-
-  await client.send('Network.clearBrowserCache');
-
-  await page.setDefaultTimeout(0);
-  await page.setDefaultNavigationTimeout(0);
-
-  await page.goto(url.link, {
-    waitUntil: "networkidle2",
-  });
-  console.log("Navigated to VFS Login form page");
-
-  const cookies = await page.waitForSelector(
-    "button#onetrust-reject-all-handler"
-  );
-  await delay(2000);
-
-  if (cookies) {
-    await cookies.click();
-  }
-
-  await page.waitForSelector("input[formcontrolname='username']");
-  await page.waitForSelector("input[formcontrolname='password']");
+      disableXvfb: false,
+      ignoreAllFlags: false,
+      timeout: 0,
+    });
 
 
-  await page.evaluate(
-    async (email, password) => {
-      const typeWithDelay = async (selector, text, delay) => {
-        const element = document.querySelector(selector);
-        if (!element) return;
 
-        // Trigger click event
-        element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    const client = await page.createCDPSession();
+    await client.send('Network.clearBrowserCookies');
 
-        for (const char of text) {
-          element.value += char;
-          await new Promise((resolve) => setTimeout(resolve, delay));
+    await client.send('Network.clearBrowserCache');
+
+    await page.setDefaultTimeout(0);
+    await page.setDefaultNavigationTimeout(0);
+
+    await page.goto(url.link, {
+      waitUntil: "networkidle2",
+    });
+
+
+    console.log("Navigated to VFS Login form page");
+
+    const cookies = await page.waitForSelector(
+      "button#onetrust-reject-all-handler"
+    );
+    await delay(2000);
+
+    if (cookies) {
+      await cookies.click();
+    }
+
+    await page.waitForSelector("input[formcontrolname='username']");
+    await page.waitForSelector("input[formcontrolname='password']");
+
+
+    await page.evaluate(
+      async (email, password) => {
+        const typeWithDelay = async (selector, text, delay) => {
+          const element = document.querySelector(selector);
+
+          element.focus();
+          for (const char of text) {
+            element.value += char;
+            element.dispatchEvent(new Event('input', { bubbles: true }));
+            await new Promise((resolve) => setTimeout(resolve, delay));
+          }
+          element.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        await typeWithDelay("input[formcontrolname='username']", email, 100);
+        await typeWithDelay("input[formcontrolname='password']", password, 100);
+      },
+      user.email,
+      user.password
+    );
+
+
+    await delay(2000);
+
+    let attempts = 0;
+    const maxRetries = 5;
+
+    while (attempts < maxRetries) {
+      try {
+        const submitButton = await page.waitForSelector("button.mat-focus-indicator");
+        await submitButton.click();
+        await page.waitForNavigation({ timeout: 7000 });
+        console.log("Successfully clicked the submit button");
+        break;
+      } catch (error) {
+        attempts++;
+        console.log(`Attempt ${attempts} failed. Retrying...`);
+        if (attempts >= maxRetries) {
+          console.log("Max retries reached. Returning error.");
+
+          await browser.close();
+          console.log(`Failed to login on ${url.name} with the account: ${user.email}`)
+          return { success: false, message: `Failed to login on ${url.name} with the account: ${user.email}` };
         }
       }
-
-      await typeWithDelay("input[formcontrolname='username']", email, 100);
-      await typeWithDelay("input[formcontrolname='password']", password, 100);
-    },
-    user.email,
-    user.password
-  );
-
-  await page.click("input[formcontrolname='username']");
-  await page.keyboard.press("Backspace");
-  await page.keyboard.down("Control");
-  await page.keyboard.press("z");
-  await page.keyboard.up("Control");
-
-  await page.click("input[formcontrolname='password']");
-
-  await page.keyboard.press("Backspace");
-
-  await page.keyboard.down("Control");
-  await page.keyboard.press("z");
-  await page.keyboard.up("Control");
-
-  await delay(2000);
-
-  let attempts = 0;
-  const maxRetries = 5;
-
-  while (attempts < maxRetries) {
-    try {
-      const submitButton = await page.waitForSelector("button.mat-focus-indicator");
-      await submitButton.click();
-      await page.waitForNavigation({ timeout: 7000 });
-      console.log("Successfully clicked the submit button");
-      break;
-    } catch (error) {
-      attempts++;
-      console.log(`Attempt ${attempts} failed. Retrying...`);
-      if (attempts >= maxRetries) {
-        console.log("Max retries reached. Returning error.");
-
-        await browser.close();
-        console.log(`Failed to login on ${url.name} with the account: ${user.email}`)
-        return { success: false, message: `Failed to login on ${url.name} with the account: ${user.email}` };
-      }
     }
-  }
 
 
-  await page.waitForNavigation();
+    await page.waitForNavigation();
 
 
-  await delay(2000);
-
-
-  await page.evaluate(() => {
-    document.querySelector('button.mat-raised-button').click();
-  });
-
-
-
-
-
-  console.log("navigated!");
-
-
-
-  await delay(2000);
-
-  console.log("selecting the inputs!");
-
-
-
-
-
-
-  await delay(10000)
-
-  // Select the visa center
-  const visaCenterSelect = await page.$('mat-select[formcontrolname="centerCode"]');
-  await visaCenterSelect.click();
-  await page.waitForSelector('mat-option');
-  const visaCenterOptions = await page.$$('mat-option');
-  await visaCenterOptions[0].click(); // Selects the first option
-
-
-  await delay(10000);
-
-
-  const visaCategorySelect = await page.$('mat-select[formcontrolname="selectedSubvisaCategory"]');
-  await visaCategorySelect.click();
-  await page.waitForSelector('mat-option');
-  const visaCategoryOptions = await page.$$('mat-option');
-  await visaCategoryOptions[1].click();
-
-
-
-  await delay(10000);
-
-
-  const visaSubCategorySelect = await page.$('mat-select[formcontrolname="visaCategoryCode"]');
-  await visaSubCategorySelect.click();
-  await page.waitForSelector('mat-option');
-  const visaSubCategoryOptions = await page.$$('mat-option');
-  await visaSubCategoryOptions[1].click();
-
-
-  await delay(4000)
-  const continueBtn = await page.$("mat-focus-indicator.btn.mat-btn-lg.btn-block.btn-brand-orange.mat-raised-button.mat-button-base.mat-button-disabled");
-
-  const htmlEl = await page.$("html");
-
-  const pageurl = await page.url();
-
-  const htmlText = await page.evaluate(el => el.innerText, htmlEl); // Extract innerText from htmlEl
-
-  if (pageurl.includes("/application-detail") &&
-    !htmlText.includes('No appointment slots are currently available') &&
-    !continueBtn) {
+    await delay(2000);
 
 
     await page.evaluate(() => {
-      document.querySelector('button.mat-focus-indicator').click();
+      document.querySelector('button.mat-raised-button').click();
     });
+
+
+
+
+
+    console.log("navigated!");
+
+
+
+    await delay(2000);
+
+    console.log("selecting the inputs!");
+
+
+
+
+
+
+    await delay(7000)
+
+    const visaCenterSelect = await page.$('mat-select[formcontrolname="centerCode"]');
+    await visaCenterSelect.click();
+    await page.waitForSelector('mat-option');
+    const visaCenterOptions = await page.$$('mat-option');
+    await visaCenterOptions[0].click();
+
 
     await delay(7000);
 
 
+    const visaCategorySelect = await page.$('mat-select[formcontrolname="selectedSubvisaCategory"]');
+    await visaCategorySelect.click();
+    await page.waitForSelector('mat-option');
+    const visaCategoryOptions = await page.$$('mat-option');
+    await visaCategoryOptions[1].click();
 
 
 
-    await page.waitForSelector("input#mat-input-5", { visible: true });
-    await page.waitForSelector("input#mat-input-6", { visible: true });
-    await page.waitForSelector("input#mat-input-7", { visible: true });
-    await page.waitForSelector("input#mat-input-8", { visible: true });
-    await page.waitForSelector("input#mat-input-9", { visible: true });
-    await page.waitForSelector("input#mat-input-10", { visible: true });
-    await page.waitForSelector("input#passportExpirtyDate", { visible: true });
-    await page.waitForSelector("input#dateOfBirth", { visible: true });
-    await page.waitForSelector("input#dateOfDeparture", { visible: true });
+    await delay(7000);
 
 
-    await page.evaluate(
-      async (user) => {
-        const typeWithDelay = async (selector, text, delay) => {
-          const element = document.querySelector(selector);
-          if (!element) return;
+    const visaSubCategorySelect = await page.$('mat-select[formcontrolname="visaCategoryCode"]');
+    await visaSubCategorySelect.click();
+    await page.waitForSelector('mat-option');
+    const visaSubCategoryOptions = await page.$$('mat-option');
+    await visaSubCategoryOptions[1].click();
 
-          element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
-          for (const char of text) {
-            element.value += char;
-            await new Promise((resolve) => setTimeout(resolve, delay));
+    await delay(4000)
+    const continueBtn = await page.$("mat-focus-indicator.btn.mat-btn-lg.btn-block.btn-brand-orange.mat-raised-button.mat-button-base.mat-button-disabled");
+
+    const htmlEl = await page.$("html");
+
+    const pageurl = await page.url();
+
+    const htmlText = await page.evaluate(el => el.innerText, htmlEl);
+    if (pageurl.includes("/application-detail") &&
+      !htmlText.includes('No appointment slots are currently available') &&
+      !continueBtn) {
+
+
+      await page.evaluate(() => {
+        document.querySelector('button.mat-focus-indicator').click();
+      });
+
+
+
+
+
+      await delay(7000);
+
+
+
+
+      await Promise.all([
+        page.waitForSelector("input#mat-input-5", { visible: true }),
+        page.waitForSelector("input#mat-input-6", { visible: true }),
+        page.waitForSelector("input#mat-input-7", { visible: true }),
+        page.waitForSelector("input#mat-input-8", { visible: true }),
+        page.waitForSelector("input#mat-input-9", { visible: true }),
+        page.waitForSelector("input#mat-input-10", { visible: true }),
+        page.waitForSelector("input#passportExpirtyDate", { visible: true }),
+        page.waitForSelector("input#dateOfBirth", { visible: true }),
+        page.waitForSelector("input#dateOfDeparture", { visible: true })
+      ]);
+
+      await page.evaluate(
+        async (user) => {
+          const typeWithDelay = async (selector, text, delay) => {
+            const element = document.querySelector(selector);
+            if (!element) return;
+
+            element.focus();
+            for (const char of text) {
+              element.value += char;
+              element.dispatchEvent(new Event('input', { bubbles: true }));
+              await new Promise((resolve) => setTimeout(resolve, delay));
+            }
+            element.dispatchEvent(new Event('change', { bubbles: true }));
+          };
+
+          await typeWithDelay("input#mat-input-5", user.firstName, 100);
+          await typeWithDelay("input#mat-input-6", user.lastName, 100);
+          await typeWithDelay("input#dateOfBirth", user.dob, 100);
+          await typeWithDelay("input#mat-input-7", user.passportNumber, 100);
+          await typeWithDelay("input#passportExpirtyDate", user.passportExpiry, 100);
+          await typeWithDelay("input#dateOfDeparture", user.departureDate, 100);
+          await typeWithDelay("input#mat-input-8", user.countryCode, 100);
+          await typeWithDelay("input#mat-input-9", user.contactNumber, 100);
+          await typeWithDelay("input#mat-input-10", user.email, 100);
+        },
+        user
+      );
+
+      await delay(2000)
+
+
+      await page.evaluate(() => {
+        const selectElement = document.querySelector('mat-select#mat-select-6');
+        if (selectElement) {
+          selectElement.blur();
+        }
+      });
+
+      await delay(4000)
+
+      const country = await page.$('mat-select#mat-select-8');
+      await country.click();
+
+      await page.waitForSelector('mat-option');
+
+      const countryOptions = await page.$$('mat-option');
+
+      if (countryOptions.length) {
+        for (let option of countryOptions) {
+          const text = await option.$eval('span.mat-option-text', el => el.textContent.toLowerCase());
+          const userNationality = user.nationality.toLowerCase();
+          if (text.includes(userNationality)) {
+            await option.click();
+            break;
           }
         }
+      } else {
 
-        await typeWithDelay("input#mat-input-5", 'Saboor', 100);
-        await typeWithDelay("input#mat-input-6", 'Ahmed', 100);
-        await typeWithDelay("input#dateOfBirth", '11/01/2003', 100);
-        await typeWithDelay("input#mat-input-7", '99111999', 100);
-        await typeWithDelay("input#passportExpirtyDate", '09/10/2026', 100);
-        await typeWithDelay("input#dateOfDeparture", '11/01/2025', 100);
-        await typeWithDelay("input#mat-input-8", '44', 100);
-        await typeWithDelay("input#mat-input-9", '034801807502', 100);
-        await typeWithDelay("input#mat-input-10", user.email, 100);
-      },
-      user
-    );
-    await page.waitForSelector("input")
-    await page.click("input#mat-input-5", { delay: 100 });
-    await page.keyboard.press("Backspace");
-    await page.keyboard.down("Control");
-    await page.keyboard.press("z");
-    await page.keyboard.up("Control");
-
-    await page.click("input#mat-input-6", { delay: 100 });
-    await page.keyboard.press("Backspace");
-    await page.keyboard.down("Control");
-    await page.keyboard.press("z");
-    await page.keyboard.up("Control");
-
-    await page.click("input#mat-input-7", { delay: 100 });
-    await page.keyboard.press("Backspace");
-    await page.keyboard.down("Control");
-    await page.keyboard.press("z");
-    await page.keyboard.up("Control");
-
-    await page.click("input#mat-input-8", { delay: 100 });
-    await page.keyboard.press("Backspace");
-    await page.keyboard.down("Control");
-    await page.keyboard.press("z");
-    await page.keyboard.up("Control");
-
-    await page.click("input#mat-input-9", { delay: 100 });
-    await page.keyboard.press("Backspace");
-    await page.keyboard.down("Control");
-    await page.keyboard.press("z");
-    await page.keyboard.up("Control");
-
-    await page.click("input#mat-input-10", { delay: 100 });
-    await page.keyboard.press("Backspace");
-    await page.keyboard.down("Control");
-    await page.keyboard.press("z");
-    await page.keyboard.up("Control");
-
-    await page.click("input#passportExpirtyDate", { delay: 100 });
-    await page.keyboard.press("Backspace");
-    await page.keyboard.down("Control");
-    await page.keyboard.press("z");
-    await page.keyboard.up("Control");
-
-    await page.click("input#dateOfBirth", { delay: 100 });
-    await page.keyboard.press("Backspace");
-    await page.keyboard.down("Control");
-    await page.keyboard.press("z");
-    await page.keyboard.up("Control");
-
-    await page.click("input#dateOfDeparture", { delay: 100 });
+        return { success: false, message: `Invalid nationality '${user.nationality}' of ${user.email}!` }
+      }
 
 
-    const country = await page.$('mat-select#mat-select-8');
-    await country.click();
+      await delay(4000)
 
-    await page.waitForSelector('mat-option');
 
-    const countryOptions = await page.$$('mat-option');
+      const genderSelect = await page.$('mat-select#mat-select-6');
+      await genderSelect.click();
 
-    if (countryOptions.length) {
-      for (let option of countryOptions) {
-        const text = await option.evaluate(el => el.textContent.toLowerCase());
-        if (text.includes('united states')) {
-          await option.click();
+      await page.waitForSelector('mat-option');
+
+      const genderOptions = await page.$$('mat-option');
+
+      if (genderOptions.length) {
+        for (let option of genderOptions) {
+
+          const text = await option.$eval('span.mat-option-text', el => el.textContent.toLowerCase());
+          const userGender = user.gender.toLowerCase();
+          if (text.includes(userGender)) {
+            await option.click();
+            break;
+          }
+        }
+      } else {
+        return { success: false, message: `Invalid gender '${user.gender}' of ${user.email}!` }
+
+      }
+
+      await page.evaluate(() => {
+        const selectElement = document.querySelector('mat-select#mat-select-6');
+        if (selectElement) {
+          const clone = selectElement.cloneNode(true);
+          selectElement.parentNode.replaceChild(clone, selectElement);
+        }
+      });
+
+
+
+      console.log("Application saved!")
+
+
+
+      while (attempts < maxRetries) {
+        try {
+          const submitButton = await page.waitForSelector("button.mat-focus-indicator.mat-stroked-button.mat-button-base.btn.btn-block.btn-brand-orange.mat-btn-lg", { visible: true });
+          await submitButton.click();
+          await page.waitForNavigation({ timeout: 10000 });
+          console.log("Application submitted!");
           break;
+        } catch (error) {
+          attempts++;
+          console.log(`Attempt ${attempts} failed. Retrying...`);
+          if (attempts >= maxRetries) {
+            console.log("Max retries reached. Returning error.");
+
+            await browser.close();
+            console.log(`Failed to submit application on ${url.name} with the account: ${user.email}`)
+            return { success: false, message: `Failed to submit application on ${url.name} with the account: ${user.email}` };
+          }
         }
       }
+      return { success: true, message: `Application submitted for ${user.email} on ${url.name}. Please review the application by logging in to the account.` }
+
+    } else {
+      return { success: false, message: `No slots available for ${user.email} on ${url.name}` }
     }
-  } else {
-    console.log("no slots available!");
+
+
+  } catch (err) {
+    console.log(err);
+    return { success: false, message: `There was an error please send this error to the developer: \n ${err}` }
   }
 
 
@@ -332,4 +333,4 @@ const newBrowser = async (user, url) => {
 
 }
 
-module.exports = { Apply }
+module.exports = { newBrowser }
