@@ -123,8 +123,8 @@ const addAccount = async (chatId, userId) => {
   bot.sendMessage(
     chatId,
     `Please provide your details in the following format for each entry:\n\n
-    first_name:last_name:gender:DOB:current_nationality:passport_number:passport_expiry:date_of_departure:country_code:contact_number:email\n\n
-    Separate multiple entries by new lines.\n\nExample:\nJohn:Doe:male/other/female:26/01/1993:United States:A123456789:26/01/2025:26/01/2024:92:1234567890:john.doe@example.com`
+    first_name:last_name:gender:DOB:current_nationality:passport_number:passport_expiry:date_of_departure:country_code:contact_number:email:password\n\n
+    Separate multiple entries by new lines.\n\nExample:\nJohn:Doe:male/other/female:26/01/1993:United States:A123456789:26/01/2025:26/01/2024:92:1234567890:john.doe@example.com:welcome123`
   );
 
   bot.once("message", async (msg) => {
@@ -146,7 +146,7 @@ const addAccount = async (chatId, userId) => {
     for (let entry of entries) {
       const fields = entry.split(":");
 
-      if (fields.length === 11) {
+      if (fields.length === 12) {
         const [
           firstName,
           lastName,
@@ -158,7 +158,8 @@ const addAccount = async (chatId, userId) => {
           departureDate,
           countryCode,
           contactNumber,
-          email
+          email,
+          password
         ] = fields.map(field => field.trim());
 
         // Validate gender
@@ -200,7 +201,8 @@ const addAccount = async (chatId, userId) => {
             departureDate,
             countryCode,
             contactNumber,
-            email
+            email,
+            password,
           });
         } else {
           invalidEntries.push(`Invalid email in: ${entry}`);
@@ -242,6 +244,7 @@ const addAccount = async (chatId, userId) => {
               countryCode: entry.countryCode,
               contactNumber: entry.contactNumber,
               email: entry.email,
+              password: entry.password,
               user: user._id,
             });
 
