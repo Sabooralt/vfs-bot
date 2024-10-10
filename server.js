@@ -10,11 +10,6 @@ const { links } = require("./links");
 const { newBrowser } = require("./controllers");
 
 
-
-
-
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 mongoose
   .connect(mongoUri, {
     serverSelectionTimeoutMS: 20000,
@@ -145,6 +140,8 @@ const addAccount = async (chatId, userId) => {
     const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
     const countryCodeRegex = /^\d{2}$/;
     const contactNumberRegex = /^\d{7,}$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 
     for (let entry of entries) {
       const fields = entry.split(":");

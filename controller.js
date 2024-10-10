@@ -1,5 +1,4 @@
 const User = require("./models/user");
-const Account = require("./models/vfs_account");
 
 async function getVFSAccounts(userId) {
   try {
