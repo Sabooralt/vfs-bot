@@ -9,7 +9,12 @@ const newBrowser = async (user, url) => {
     const { browser, page } = await connect({
       headless: true,
 
-      args: [],
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+      ],
 
       customConfig: {},
 

@@ -84,11 +84,17 @@ bot.on("callback_query", async (callbackQuery) => {
     bot.sendMessage(chatId, 'Bot started! applying for applications...');
     const response = await Apply(userId, chatId);
 
-    bot.sendMessage(chatId, response.message);
+    if (response && response.message) {
+
+      bot.sendMessage(chatId, response.message);
+    }
 
     setInterval(async () => {
       const intervalResponse = await Apply(userId, chatId);
-      bot.sendMessage(chatId, intervalResponse.message);
+      if (intervalResponse && intervalResponse.message) {
+
+        bot.sendMessage(chatId, intervalResponse.message);
+      }
     }, 2 * 60 * 60 * 1000);
   } else if (data === "remove_account") {
     await removeAccount(chatId, userId)
