@@ -275,7 +275,7 @@ const addAccount = async (chatId, userId) => {
         }
       } catch (error) {
         console.error("Error saving accounts:", error);
-        bot.sendMessage(chatId, "There was an error saving your accounts.");
+        bot.sendMessage(chatId, `There was an error saving your accounts: ${error}`);
         return;
       }
     }
@@ -295,7 +295,7 @@ const addAccount = async (chatId, userId) => {
         response.text.toLowerCase() === "yes" ||
         response.text.toLowerCase() === "y"
       ) {
-       await addAccount(chatId, userId);
+        await addAccount(chatId, userId);
       } else {
         bot.sendMessage(
           chatId,
