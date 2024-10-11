@@ -8,7 +8,6 @@ const newBrowser = async (user, url) => {
 
     const { browser, page } = await connect({
       headless: true,
-      browserURL: process.env.CHROME_PATH || '/usr/bin/chromium-browser',
       executablePath: process.env.CHROME_PATH || '/usr/bin/chromium-browser',
       args: [
         '--no-sandbox',
