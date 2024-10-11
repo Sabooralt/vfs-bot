@@ -73,7 +73,7 @@ bot.on("callback_query", async (callbackQuery) => {
       const accountList = accounts
         .map(
           (account, index) =>
-            `${index + 1}. Id: ${account._id} \n ${account.email} - ${account.password}`
+            `${index + 1}. Id: ${account._id} \n Email: ${account.email} - Password: ${account.password} \n Gender: ${account.gender} - DOB: ${account.dob} \n Nationality: ${account.nationality} \n Passport Number: ${account.passportNumber} - Passport Expiry: ${account.passportExpiry} \n Departure Date: ${account.departureDate} \n Country Code: ${account.countryCode} - Contact Number: ${account.contactNumber}`
         )
         .join("\n");
       bot.sendMessage(chatId, `Your added VFS accounts:\n${accountList}`);
@@ -96,27 +96,33 @@ bot.on("callback_query", async (callbackQuery) => {
 });
 
 async function Apply(userId, chatId) {
+  try {
 
-  const user = await User.findOne({ userId }).populate("accounts");
+    const user = await User.findOne({ userId }).populate("accounts");
 
-  if (!user) {
+    if (!user) {
 
-    bot.sendMessage(chatId, "No user found. please restart the bot to register a new account!")
-    return { success: false, message: "No user found. please restart the bot to register a new account!" }
-  }
-
-  if (user.accounts && !user.accounts.length > 0) {
-    bot.sendMessage(chatId, "No vfs accounts added please add an account to apply for the visa!")
-    return { success: false, message: "No accounts added please add an account to apply for the visa!" }
-  }
-
-  const vfs_accounts = user.accounts;
-  for (let user of vfs_accounts) {
-    for (let link of links) {
-      const response = await newBrowser(user, link);
-
-      bot.sendMessage(chatId, response.message);
+      bot.sendMessage(chatId, "No user found. please restart the bot to register a new account!")
+      return { success: false, message: "No user found. please restart the bot to register a new account!" }
     }
+
+    if (user.accounts && !user.accounts.length > 0) {
+      bot.sendMessage(chatId, "No vfs accounts added please add an account to apply for the visa!")
+      return { success: false, message: "No accounts added please add an account to apply for the visa!" }
+    }
+
+    const vfs_accounts = user.accounts;
+    for (let user of vfs_accounts) {
+      for (let link of links) {
+        const response = await newBrowser(user, link);
+
+        bot.sendMessage(chatId, response.message);
+      }
+    }
+    return;
+  } catch (err) {
+    bot.sendMessage(chatId, `An error occured: ${err}`)
+    return;
   }
 }
 const addAccount = async (chatId, userId) => {
@@ -162,13 +168,11 @@ const addAccount = async (chatId, userId) => {
           password
         ] = fields.map(field => field.trim());
 
-        // Validate gender
         if (!genderRegex.test(gender)) {
           invalidEntries.push(`Invalid gender in: ${entry}`);
           continue;
         }
 
-        // Validate date format (DOB and departure date)
         if (!dateRegex.test(dob)) {
           invalidEntries.push(`Invalid DOB format in: ${entry}`);
           continue;
@@ -291,7 +295,7 @@ const addAccount = async (chatId, userId) => {
         response.text.toLowerCase() === "yes" ||
         response.text.toLowerCase() === "y"
       ) {
-        addAccount(chatId, userId);
+       await addAccount(chatId, userId);
       } else {
         bot.sendMessage(
           chatId,

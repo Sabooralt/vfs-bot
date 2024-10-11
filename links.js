@@ -4,15 +4,15 @@ const links = [
         link: "https://visa.vfsglobal.com/are/en/prt/login"
     },
     {
-        name: "Qatar to UAE",
+        name: "Qatar to Portugal",
         link: "https://visa.vfsglobal.com/qat/en/prt/login",
     },
     {
-        name: "Saudi to UAE",
+        name: "Saudi to Portugal",
         link: "https://visa.vfsglobal.com/sau/en/prt/login"
     },
     {
-        name: "Saudi to UAE",
+        name: "Pakistan to Portugal",
         link: "https://visa.vfsglobal.com/pak/en/prt/login"
     }
 ]
