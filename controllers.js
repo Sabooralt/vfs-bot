@@ -23,7 +23,7 @@ const newBrowser = async (user, url) => {
       connectOption: {},
       fingerprint: true,
 
-      disableXvfb: false,
+      disableXvfb: true,
       ignoreAllFlags: false,
       timeout: 0,
     });
