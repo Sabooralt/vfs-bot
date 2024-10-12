@@ -127,6 +127,7 @@ async function Apply(userId, chatId) {
     }
     return;
   } catch (err) {
+    console.log(err)
     bot.sendMessage(chatId, `An error occured: ${err}`)
     return;
   }
