@@ -1,4 +1,5 @@
-const { connect } = require("puppeteer-real-browser");
+const { connect, puppeteer } = require("puppeteer-real-browser");
+
 require("dotenv").config();
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -8,7 +9,10 @@ const newBrowser = async (user, url) => {
 
     const { browser, page } = await connect({
       headless: true,
-      executablePath: process.env.CHROME_PATH || '/usr/bin/chromium-browser',
+      executablePath:
+        process.env.NODE_ENV === "production"
+        && process.env.PUPPETEER_EXECUTABLE_PATH,
+
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
