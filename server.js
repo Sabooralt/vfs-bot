@@ -134,9 +134,9 @@ async function Apply(userId, chatId) {
 const addAccount = async (chatId, userId) => {
   bot.sendMessage(
     chatId,
-    `Please provide your details in the following format for each entry:\n\n
+    `Please provide your details in the following format for each entry:\n
     first_name:last_name:gender:DOB:current_nationality:passport_number:passport_expiry:date_of_departure:country_code:contact_number:email:password\n\n
-    Separate multiple entries by new lines.\n\nExample:\nJohn:Doe:male/other/female:26/01/1993:United States:A123456789:26/01/2025:26/01/2024:92:1234567890:john.doe@example.com:welcome123`
+    Separate multiple entries by new lines.\nExample:\nJohn:Doe:male/other/female:26/01/1993:United States:A123456789:26/01/2025:26/01/2024:92:1234567890:john.doe@example.com:welcome123`
   );
 
   bot.once("message", async (msg) => {

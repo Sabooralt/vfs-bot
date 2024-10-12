@@ -16,4 +16,4 @@ const VfsSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 }, { timestamps: true });
 
-module.exports = mongoose.model("VFS_account", VfsSchema);
+module.exports = mongoose.model("Account", VfsSchema);

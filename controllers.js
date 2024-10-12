@@ -1,36 +1,32 @@
-const { connect, puppeteer } = require("puppeteer-real-browser");
+const { connect } = require("puppeteer-real-browser");
 
 require("dotenv").config();
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const newBrowser = async (user, url) => {
+  const { browser, page } = await connect({
+    headless: false,
+    executablePath:
+      process.env.NODE_ENV === "production"
+      && process.env.PUPPETEER_EXECUTABLE_PATH,
+
+    args: [
+    ],
+
+    customConfig: {},
+
+    turnstile: true,
+
+    connectOption: {},
+    fingerprint: true,
+
+    disableXvfb: true,
+    ignoreAllFlags: false,
+    timeout: 0,
+  });
   try {
 
-    const { browser, page } = await connect({
-      headless: true,
-      executablePath:
-        process.env.NODE_ENV === "production"
-        && process.env.PUPPETEER_EXECUTABLE_PATH,
-
-      args: [
-        "--disable-setuid-sandbox",
-        "--no-sandbox",
-        "--single-process",
-        "--no-zygote",
-      ],
-
-      customConfig: {},
-
-      turnstile: true,
-
-      connectOption: {},
-      fingerprint: true,
-
-      disableXvfb: false,
-      ignoreAllFlags: false,
-      timeout: 0,
-    });
 
 
 
@@ -46,22 +42,18 @@ const newBrowser = async (user, url) => {
     console.log("Navigated to VFS Login form page");
 
 
-    console.log(page.url);
+    console.log(await page.url());
 
-    console.log(page.$('html'))
+    console.log(await page.$('html'))
 
 
-    const timeout = 5000;
 
-    const cookiesPromise = page.waitForSelector("button#onetrust-reject-all-handler", { timeout });
 
-    const cookies = await Promise.race([
-      cookiesPromise,
-      delay(timeout).then(() => null),
-    ]);
+    const cookiesPromise = await page.waitForSelector("button#onetrust-reject-all-handler",);
 
-    if (cookies) {
-      await cookies.click();
+
+    if (cookiesPromise) {
+      await cookiesPromise.click();
     } else {
       console.log("Button not found within the timeout period.");
     }
@@ -71,7 +63,7 @@ const newBrowser = async (user, url) => {
 
 
     await page.evaluate(
-      async (email, password) => {
+      async (user) => {
         const typeWithDelay = async (selector, text, delay) => {
           const element = document.querySelector(selector);
 
@@ -84,11 +76,10 @@ const newBrowser = async (user, url) => {
           element.dispatchEvent(new Event('change', { bubbles: true }));
         }
 
-        await typeWithDelay("input[formcontrolname='username']", email, 100);
-        await typeWithDelay("input[formcontrolname='password']", password, 100);
+        await typeWithDelay("input[formcontrolname='username']", user.email, 100);
+        await typeWithDelay("input[formcontrolname='password']", user.password, 100);
       },
-      user.email,
-      user.password
+      user
     );
 
 
@@ -342,6 +333,10 @@ const newBrowser = async (user, url) => {
 
   } catch (err) {
     console.log(err);
+
+    if(browser){
+      await browser.close();
+    }
     return { success: false, message: `There was an error please send this error to the developer: \n ${err}` }
   }
 
