@@ -27,7 +27,7 @@ const newBrowser = async (user, url) => {
       connectOption: {},
       fingerprint: true,
 
-      disableXvfb: true,
+      disableXvfb: false,
       ignoreAllFlags: false,
       timeout: 0,
     });
@@ -53,6 +53,8 @@ const newBrowser = async (user, url) => {
     console.log(page.url);
 
     console.log(page.$('html'))
+
+
     const timeout = 5000;
 
     const cookiesPromise = page.waitForSelector("button#onetrust-reject-all-handler", { timeout });
