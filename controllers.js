@@ -3,36 +3,35 @@ const { connect } = require("puppeteer-real-browser");
 require("dotenv").config();
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
+let browser;
 const newBrowser = async (user, url) => {
-  const { browser, page } = await connect({
-    headless: true,
-    executablePath:
-      process.env.NODE_ENV === "production"
-      && "/usr/bin/google-chrome-stable",
-
-    ignoreDefaultArgs: ['--disable-extensions'],
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-
-    customConfig: {},
-
-    turnstile: true,
-
-    connectOption: {},
-    fingerprint: true,
-
-    disableXvfb: true,
-    ignoreAllFlags: false,
-    timeout: 0,
-  });
   try {
+    const { browser, page } = await connect({
+      headless: false,
+      executablePath:
+        process.env.NODE_ENV === "production"
+        && "/usr/bin/google-chrome-stable",
 
+      ignoreDefaultArgs: ['--disable-extensions'],
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
 
+      customConfig: {},
 
+      turnstile: true,
 
+      connectOption: {},
+      fingerprint: true,
+
+      disableXvfb: true,
+      ignoreAllFlags: false,
+      timeout: 0,
+    });
 
     await page.setDefaultTimeout(0);
     await page.setDefaultNavigationTimeout(0);
+
+    await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36");
+    await page.setViewport({ width: 1920, height: 1080 });
 
     await page.goto(url.link, {
       waitUntil: "networkidle2",
@@ -324,9 +323,13 @@ const newBrowser = async (user, url) => {
           }
         }
       }
+
+      await browser.close();
       return { success: true, message: `Application submitted for ${user.email} on ${url.name}. Please review the application by logging in to the account.` }
 
     } else {
+
+      await browser.close();
       return { success: false, message: `No slots available for ${user.email} on ${url.name}` }
     }
 
@@ -339,7 +342,6 @@ const newBrowser = async (user, url) => {
     }
     return { success: false, message: `There was an error please send this error to the developer: \n ${err}` }
   }
-
 
 
 
