@@ -6,13 +6,13 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const newBrowser = async (user, url) => {
   const { browser, page } = await connect({
-    headless: false,
+    headless: true,
     executablePath:
       process.env.NODE_ENV === "production"
       && "/usr/bin/google-chrome-stable",
 
-    args: [
-    ],
+    ignoreDefaultArgs: ['--disable-extensions'],
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
 
     customConfig: {},
 
