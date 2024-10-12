@@ -9,7 +9,7 @@ const newBrowser = async (user, url) => {
     headless: false,
     executablePath:
       process.env.NODE_ENV === "production"
-      && process.env.PUPPETEER_EXECUTABLE_PATH,
+      && "/usr/bin/google-chrome-stable",
 
     args: [
     ],
@@ -334,7 +334,7 @@ const newBrowser = async (user, url) => {
   } catch (err) {
     console.log(err);
 
-    if(browser){
+    if (browser) {
       await browser.close();
     }
     return { success: false, message: `There was an error please send this error to the developer: \n ${err}` }
