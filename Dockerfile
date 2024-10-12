@@ -1,29 +1,11 @@
-# Use a base image with Node.js
-FROM node:20.17.0
+FROM ghcr.io/puppeteer/puppeteer:23.4.0
 
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 
-# Install necessary packages
-RUN apt-get update && apt-get install gnupg wget -y && \
-    wget -q -O- https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor > /etc/apt/trusted.gpg.d/google-archive.gpg && \
-    sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' && \
-    apt-get update && \
-    apt-get install google-chrome-stable -y --no-install-recommends && \
-    rm -rf /var/lib/apt/lists/*
+WORKDIR /usr/src/app
 
-# Create a working directory
-WORKDIR /app
-
-# Copy package.json and package-lock.json
 COPY package*.json ./
-
-# Install dependencies
-RUN npm install --production
-
-# Copy the rest of your application code
+RUN npm ci
 COPY . .
-
-# Expose the port your app runs on (if needed)
-# EXPOSE 3000
-
-# Command to run your bot
-CMD ["node", "server.js"]
+CMD [ "node", "server.js" ]
