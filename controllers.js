@@ -13,7 +13,12 @@ const newBrowser = async (user, url) => {
         && "/usr/bin/google-chrome-stable",
 
       ignoreDefaultArgs: ['--disable-extensions'],
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: [
+        "--disable-setuid-sandbox",
+        "--no-sandbox",
+        "--single-process",
+        "--no-zygote",
+      ],
 
       customConfig: {},
 
