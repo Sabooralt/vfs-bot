@@ -1,5 +1,5 @@
 # Use a base image with Node.js
-FROM node:16-slim
+FROM node:20.17.0
 
 
 # Install necessary packages
