@@ -49,13 +49,19 @@ const newBrowser = async (user, url) => {
 
     console.log("Navigated to VFS Login form page");
 
-    const cookies = await page.waitForSelector(
-      "button#onetrust-reject-all-handler"
-    );
-    await delay(2000);
+    const timeout = 5000;
+
+    const cookiesPromise = page.waitForSelector("button#onetrust-reject-all-handler", { timeout });
+
+    const cookies = await Promise.race([
+      cookiesPromise,
+      delay(timeout).then(() => null),
+    ]);
 
     if (cookies) {
       await cookies.click();
+    } else {
+      console.log("Button not found within the timeout period.");
     }
 
     await page.waitForSelector("input[formcontrolname='username']");
