@@ -34,10 +34,6 @@ const newBrowser = async (user, url) => {
 
 
 
-    const client = await page.createCDPSession();
-    await client.send('Network.clearBrowserCookies');
-
-    await client.send('Network.clearBrowserCache');
 
     await page.setDefaultTimeout(0);
     await page.setDefaultNavigationTimeout(0);
