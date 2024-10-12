@@ -14,10 +14,7 @@ const newBrowser = async (user, url) => {
 
       ignoreDefaultArgs: ['--disable-extensions'],
       args: [
-        "--disable-setuid-sandbox",
-        "--no-sandbox",
-        "--single-process",
-        "--no-zygote",
+        '--no-sandbox', '--disable-setuid-sandbox'
       ],
 
       customConfig: {},
