@@ -14,10 +14,10 @@ const newBrowser = async (user, url) => {
         && process.env.PUPPETEER_EXECUTABLE_PATH,
 
       args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
+        "--disable-setuid-sandbox",
+        "--no-sandbox",
+        "--single-process",
+        "--no-zygote",
       ],
 
       customConfig: {},
