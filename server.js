@@ -86,15 +86,20 @@ bot.on("callback_query", async (callbackQuery) => {
     bot.sendMessage(chatId, 'Bot started! applying for applications...');
     const response = await Apply(userId, chatId);
     const screenshotPath = path.join(__dirname, 'screenshot.png');
+    const ErrorscreenshotPath = path.join(__dirname, 'error.png');
     if (response && response.message) {
 
       bot.sendMessage(chatId, response.message);
     }
 
-    if (response && response.screenshot && response.message) {
+    if (response && response.success && response.screenshot && response.message) {
       bot.sendPhoto(chatId, screenshotPath, { caption: 'Here is the screenshot!' })
+      fs.unlinkSync(screenshotPath);
     }
-    fs.unlinkSync(screenshotPath);
+    if (response && !response.success && response.screenshot && response.message) {
+      bot.sendPhoto(chatId, ErrorscreenshotPath, { caption: 'Here is the screenshot!' })
+      fs.unlinkSync(ErrorscreenshotPath);
+    }
 
     applyInterval = setInterval(async () => {
       const intervalResponse = await Apply(userId, chatId);

@@ -104,10 +104,10 @@ const newBrowser = async (user, url) => {
         console.log(`Attempt ${attempts} failed. Retrying...`);
         if (attempts >= maxRetries) {
           console.log("Max retries reached. Returning error.");
-
+          await page.screenshot({ path: "error.png" });
           await browser.close();
           console.log(`Failed to login on ${url.name} with the account: ${user.email}`)
-          return { success: false, message: `Failed to login on ${url.name} with the account: ${user.email}` };
+          return { success: false, screenshot: true, message: `Failed to login on ${url.name} with the account: ${user.email}` };
         }
       }
     }
@@ -358,7 +358,7 @@ const newBrowser = async (user, url) => {
     if (browser) {
       await browser.close();
     }
-    page.screenshot({ path: 'errorscreenshot.png' })
+    page.screenshot({ path: 'error.png' })
     return { success: false, message: `There was an error please send this error to the developer: \n ${err}` }
   }
 
