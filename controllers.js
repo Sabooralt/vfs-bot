@@ -11,7 +11,7 @@ const newBrowser = async (user, url) => {
   try {
     const executablePath = await new Promise(resolve => locateChrome((arg) => resolve(arg))) || '/usr/bin/google-chrome';
     const { browser, page } = await connect({
-      headless: true,
+      headless: false,
       executablePath,
       ignoreDefaultArgs: ['--disable-extensions'],
       args: [
@@ -23,7 +23,7 @@ const newBrowser = async (user, url) => {
       turnstile: true,
 
       connectOption: {},
-      fingerprint: true,
+      fingerprint: false,
 
       disableXvfb: true,
       ignoreAllFlags: false,
@@ -33,7 +33,6 @@ const newBrowser = async (user, url) => {
     await page.setDefaultTimeout(0);
     await page.setDefaultNavigationTimeout(0);
 
-    await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36");
     await page.setViewport({ width: 1920, height: 1080 });
 
     await page.goto(url.link, {
@@ -154,7 +153,7 @@ const newBrowser = async (user, url) => {
     await visaCategorySelect.click();
     await page.waitForSelector('mat-option');
     const visaCategoryOptions = await page.$$('mat-option');
-    await visaCategoryOptions[1].click();
+    await visaCategoryOptions[visaSubCategoryOptions.length > 0 ? 1 : 0].click();
 
 
 
@@ -165,7 +164,7 @@ const newBrowser = async (user, url) => {
     await visaSubCategorySelect.click();
     await page.waitForSelector('mat-option');
     const visaSubCategoryOptions = await page.$$('mat-option');
-    await visaSubCategoryOptions[1].click();
+    await visaSubCategoryOptions[visaSubCategoryOptions.length > 0 ? 1 : 0].click();
 
 
     await delay(4000)
