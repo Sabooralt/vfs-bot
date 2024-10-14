@@ -87,30 +87,38 @@ bot.on("callback_query", async (callbackQuery) => {
     const response = await Apply(userId, chatId);
     const screenshotPath = path.join(__dirname, 'screenshot.png');
     const ErrorscreenshotPath = path.join(__dirname, 'error.png');
+
     if (response && response.message) {
 
       bot.sendMessage(chatId, response.message);
     }
-
-    if (response && response.success && response.screenshot && response.message) {
-      bot.sendPhoto(chatId, screenshotPath)
-        .then(() => {
-          console.log("Photo sent!");
-        })
-        .catch((err) => {
-          console.error(err);
-        });
-      fs.unlinkSync(screenshotPath);
+    if (response && response.success && response.screenshot) {
+      if (fs.existsSync(screenshotPath)) {
+        bot.sendPhoto(chatId, screenshotPath)
+          .then(() => {
+            console.log("Photo sent!");
+            fs.unlinkSync(screenshotPath);
+          })
+          .catch((err) => {
+            console.error(err);
+          });
+      } else {
+        console.error('File does not exist:', screenshotPath);
+      }
     }
-    if (response && !response.success && response.screenshot && response.message) {
-      bot.sendPhoto(chatId, ErrorscreenshotPath)
-        .then(() => {
-          console.log("Photo sent!");
-        })
-        .catch((err) => {
-          console.error(err);
-        });
-      fs.unlinkSync(ErrorscreenshotPath);
+    if (response && !response.success && response.screenshot) {
+      if (fs.existsSync(ErrorscreenshotPath)) {
+        bot.sendPhoto(chatId, ErrorscreenshotPath)
+          .then(() => {
+            console.log("Photo sent!");
+            fs.unlinkSync(ErrorscreenshotPath);
+          })
+          .catch((err) => {
+            console.error(err);
+          });
+      } else {
+        console.error('File does not exist:', ErrorscreenshotPath);
+      }
     }
 
     applyInterval = setInterval(async () => {
