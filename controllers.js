@@ -10,6 +10,9 @@ const newBrowser = async (user, url) => {
   try {
     const { browser, page } = await connect({
       headless: true,
+      executablePath:
+        process.env.NODE_ENV === "production"
+        && "/usr/bin/google-chrome-stable",
       ignoreDefaultArgs: ['--disable-extensions'],
       args: [
         '--no-sandbox', '--disable-setuid-sandbox'
