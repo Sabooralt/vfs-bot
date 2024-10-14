@@ -47,10 +47,10 @@ bot.onText(/\/start/, async (msg) => {
     await user.save();
     bot.sendMessage(
       chatId,
-      `Welcome ${username}! Your account has been created. \n Choose an option: ${options}`
+      `Welcome ${username}! Your account has been created. \n Choose an option:`, options
     );
   } else {
-    bot.sendMessage(chatId, `Welcome back, ${username}! \n Choose an option: ${options}`);
+    bot.sendMessage(chatId, `Welcome back, ${username}! \n Choose an option:`, options);
   }
 });
 
