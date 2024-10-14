@@ -13,7 +13,7 @@ const newBrowser = async (user, url) => {
     executablePath,
     ignoreDefaultArgs: ['--disable-extensions'],
     args: [
-      '--no-sandbox', '--disable-setuid-sandbox'
+      '--no-sandbox', '--disable-setuid-sandbox', '--disable-blink-features=AutomationControlled'
     ],
 
     customConfig: {},
@@ -29,15 +29,16 @@ const newBrowser = async (user, url) => {
   });
   try {
 
-    await page.setDefaultTimeout(0);
-    await page.setDefaultNavigationTimeout(0);
 
+    await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.3");
     await page.setViewport({ width: 1920, height: 1080 });
+
 
     await page.goto(url.link, {
       waitUntil: "networkidle2",
     });
 
+    await page.waitForNavigation();
 
     console.log("Navigated to VFS Login form page");
 
@@ -57,6 +58,8 @@ const newBrowser = async (user, url) => {
     } else {
       console.log("Button not found within the timeout period.");
     }
+
+    console.log("loggin in!")
 
     await page.waitForSelector("input[formcontrolname='username']");
     await page.waitForSelector("input[formcontrolname='password']");
