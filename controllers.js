@@ -30,6 +30,7 @@ const newBrowser = async (user, url) => {
   try {
 
 
+    await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.3");
     await page.setViewport({ width: 1920, height: 1080 });
 
     page.setDefaultNavigationTimeout(0)
@@ -39,7 +40,6 @@ const newBrowser = async (user, url) => {
       waitUntil: "networkidle2",
     });
 
-    await page.waitForNavigation();
 
     console.log("Navigated to VFS Login form page");
 
