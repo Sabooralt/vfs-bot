@@ -93,11 +93,23 @@ bot.on("callback_query", async (callbackQuery) => {
     }
 
     if (response && response.success && response.screenshot && response.message) {
-      bot.sendPhoto(chatId, screenshotPath, { caption: 'Here is the screenshot!' })
+      bot.sendPhoto(chatId, screenshotPath)
+        .then(() => {
+          console.log("Photo sent!");
+        })
+        .catch((err) => {
+          console.error(err);
+        });
       fs.unlinkSync(screenshotPath);
     }
     if (response && !response.success && response.screenshot && response.message) {
-      bot.sendPhoto(chatId, ErrorscreenshotPath, { caption: 'Here is the screenshot!' })
+      bot.sendPhoto(chatId, ErrorscreenshotPath)
+        .then(() => {
+          console.log("Photo sent!");
+        })
+        .catch((err) => {
+          console.error(err);
+        });
       fs.unlinkSync(ErrorscreenshotPath);
     }
 
