@@ -8,6 +8,7 @@ const newBrowser = async (user, url) => {
   try {
     const { browser, page } = await connect({
       headless: true,
+      browserWSEndpoint: process.env.BROWSER_WS_ENDPOINT,
       executablePath:
         process.env.NODE_ENV === "production"
         && "/usr/bin/google-chrome-stable",
