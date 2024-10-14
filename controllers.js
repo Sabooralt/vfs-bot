@@ -33,7 +33,9 @@ const newBrowser = async (user, url) => {
     await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.3");
     await page.setViewport({ width: 1920, height: 1080 });
 
-
+    page.setDefaultNavigationTimeout(0)
+    page.setDefaultTimeout(0)
+    console.log("started!")
     await page.goto(url.link, {
       waitUntil: "networkidle2",
     });
@@ -357,6 +359,7 @@ const newBrowser = async (user, url) => {
     if (browser) {
       await browser.close();
     }
+    page.screenshot({ path: 'errorscreenshot.png' })
     return { success: false, message: `There was an error please send this error to the developer: \n ${err}` }
   }
 
