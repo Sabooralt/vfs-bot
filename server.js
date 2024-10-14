@@ -85,55 +85,21 @@ bot.on("callback_query", async (callbackQuery) => {
   } else if (data === "apply") {
     bot.sendMessage(chatId, 'Bot started! applying for applications...');
     const response = await Apply(userId, chatId);
-    const screenshotPath = path.join(__dirname, 'screenshot.png');
-    const ErrorscreenshotPath = path.join(__dirname, 'error.png');
+
 
     if (response && response.message) {
 
       bot.sendMessage(chatId, response.message);
     }
-    if (response && response.success && response.screenshot) {
-      if (fs.existsSync(screenshotPath)) {
-        bot.sendPhoto(chatId, screenshotPath)
-          .then(() => {
-            console.log("Photo sent!");
-            fs.unlinkSync(screenshotPath);
-          })
-          .catch((err) => {
-            console.error(err);
-          });
-      } else {
-        console.error('File does not exist:', screenshotPath);
-      }
-    }
-    if (response && !response.success && response.screenshot) {
-      if (fs.existsSync(ErrorscreenshotPath)) {
-        bot.sendPhoto(chatId, ErrorscreenshotPath)
-          .then(() => {
-            console.log("Photo sent!");
-            fs.unlinkSync(ErrorscreenshotPath);
-          })
-          .catch((err) => {
-            console.error(err);
-          });
-      } else {
-        console.error('File does not exist:', ErrorscreenshotPath);
-      }
-    }
+
+
 
     applyInterval = setInterval(async () => {
       const intervalResponse = await Apply(userId, chatId);
       if (intervalResponse && intervalResponse.message) {
         bot.sendMessage(chatId, intervalResponse.message);
       }
-      if (intervalResponse && intervalResponse.screenshot && intervalResponse.message) {
-        bot.sendPhoto(chatId, screenshotPath, { caption: 'Here is the screenshot!' })
-        fs.unlinkSync(screenshotPath);
-      }
-      if (intervalResponse && !intervalResponse.success && intervalResponse.screenshot && intervalResponse.message) {
-        bot.sendPhoto(chatId, ErrorscreenshotPath, { caption: 'Here is the screenshot!' })
-        fs.unlinkSync(ErrorscreenshotPath);
-      }
+
     }, 2 * 60 * 60 * 1000);
   }
   else if (data === "stop_apply") {
@@ -170,7 +136,42 @@ async function Apply(userId, chatId) {
       for (let link of links) {
         const response = await newBrowser(user, link);
 
-        bot.sendMessage(chatId, response.message);
+        const screenshotPath = path.join(__dirname, 'screenshot.png');
+        const ErrorscreenshotPath = path.join(__dirname, 'error.png');
+
+        if (response && response.message) {
+          bot.sendMessage(chatId, response.message);
+
+        }
+
+        if (response && response.success && response.screenshot) {
+          if (fs.existsSync(screenshotPath)) {
+            bot.sendPhoto(chatId, screenshotPath)
+              .then(() => {
+                console.log("Photo sent!");
+                fs.unlinkSync(screenshotPath);
+              })
+              .catch((err) => {
+                console.error(err);
+              });
+          } else {
+            console.error('File does not exist:', screenshotPath);
+          }
+        }
+        if (response && !response.success && response.screenshot) {
+          if (fs.existsSync(ErrorscreenshotPath)) {
+            bot.sendPhoto(chatId, ErrorscreenshotPath)
+              .then(() => {
+                console.log("Photo sent!");
+                fs.unlinkSync(ErrorscreenshotPath);
+              })
+              .catch((err) => {
+                console.error(err);
+              });
+          } else {
+            console.error('File does not exist:', ErrorscreenshotPath);
+          }
+        }
       }
     }
     return;
