@@ -22,6 +22,7 @@ const bot = new TelegramBot(token, {
   polling: true,
 });
 
+let applyInterval;
 const options = {
   reply_markup: {
     inline_keyboard: [
@@ -31,6 +32,7 @@ const options = {
         { text: "Remove an account", callback_data: "remove_account" },
       ],
       [{ text: "Apply for Visa", callback_data: "apply" }],
+      [{ text: 'Stop Applying', callback_data: 'stop_apply' }],
     ],
   },
 };
@@ -87,13 +89,21 @@ bot.on("callback_query", async (callbackQuery) => {
       bot.sendMessage(chatId, response.message);
     }
 
-    setInterval(async () => {
+    applyInterval = setInterval(async () => {
       const intervalResponse = await Apply(userId, chatId);
       if (intervalResponse && intervalResponse.message) {
-
         bot.sendMessage(chatId, intervalResponse.message);
       }
     }, 2 * 60 * 60 * 1000);
+  }
+  else if (data === "stop_apply") {
+    if (applyInterval) {
+      clearInterval(applyInterval);
+      bot.sendMessage(chatId, 'Application process stopped.');
+      console.log('Interval cleared.');
+    } else {
+      bot.sendMessage(chatId, 'No active application process.');
+    }
   } else if (data === "remove_account") {
     await removeAccount(chatId, userId)
   }
