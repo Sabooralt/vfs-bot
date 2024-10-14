@@ -1,9 +1,8 @@
 const { connect } = require("puppeteer-real-browser");
-const { execSync } = require('child_process');
 
 
 require("dotenv").config();
-const chromiumPath = execSync('which chromium').toString().trim();
+
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 let browser;
@@ -11,7 +10,7 @@ const newBrowser = async (user, url) => {
   try {
     const { browser, page } = await connect({
       headless: true,
-      executablePath: chromiumPath,
+      executablePath: '/usr/bin/chromium-browser',
 
       ignoreDefaultArgs: ['--disable-extensions'],
       args: [
