@@ -1,4 +1,4 @@
-const locateChrome = require("locate-chrome");
+var locateChrome = require("locate-chrome");
 const { connect } = require("puppeteer-real-browser");
 
 
@@ -7,9 +7,9 @@ require("dotenv").config();
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 let browser;
-const executablePath = await new Promise(resolve => locateChrome((arg) => resolve(arg))) || '/usr/bin/google-chrome';
 const newBrowser = async (user, url) => {
   try {
+    const executablePath = await new Promise(resolve => locateChrome((arg) => resolve(arg))) || '/usr/bin/google-chrome';
     const { browser, page } = await connect({
       headless: true,
       executablePath,
