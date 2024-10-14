@@ -10,8 +10,6 @@ const newBrowser = async (user, url) => {
   try {
     const { browser, page } = await connect({
       headless: true,
-      executablePath: '/usr/bin/chromium-browser',
-
       ignoreDefaultArgs: ['--disable-extensions'],
       args: [
         '--no-sandbox', '--disable-setuid-sandbox'
