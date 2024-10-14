@@ -32,7 +32,7 @@ const newBrowser = async (user, url) => {
     await page.setDefaultTimeout(0);
     await page.setDefaultNavigationTimeout(0);
 
-
+    await page.setViewport({ width: 1920, height: 1080 });
 
     await page.goto(url.link, {
       waitUntil: "networkidle2",
