@@ -8,6 +8,8 @@ const User = require("./models/user");
 const VFS_account = require("./models/vfs_account");
 const { links } = require("./links");
 const { newBrowser } = require("./controllers");
+const fs = require("fs")
+const path = require("path")
 
 
 mongoose
@@ -83,17 +85,26 @@ bot.on("callback_query", async (callbackQuery) => {
   } else if (data === "apply") {
     bot.sendMessage(chatId, 'Bot started! applying for applications...');
     const response = await Apply(userId, chatId);
-
+    const screenshotPath = path.join(__dirname, 'screenshot.png');
     if (response && response.message) {
 
       bot.sendMessage(chatId, response.message);
     }
+
+    if (response && response.screenshot && response.message) {
+      bot.sendPhoto(chatId, screenshotPath, { caption: 'Here is the screenshot!' })
+    }
+    fs.unlinkSync(screenshotPath);
 
     applyInterval = setInterval(async () => {
       const intervalResponse = await Apply(userId, chatId);
       if (intervalResponse && intervalResponse.message) {
         bot.sendMessage(chatId, intervalResponse.message);
       }
+      if (response && response.screenshot && response.message) {
+        bot.sendPhoto(chatId, screenshotPath, { caption: 'Here is the screenshot!' })
+      }
+      fs.unlinkSync(screenshotPath);
     }, 2 * 60 * 60 * 1000);
   }
   else if (data === "stop_apply") {
