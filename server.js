@@ -106,10 +106,14 @@ bot.on("callback_query", async (callbackQuery) => {
       if (intervalResponse && intervalResponse.message) {
         bot.sendMessage(chatId, intervalResponse.message);
       }
-      if (response && response.screenshot && response.message) {
+      if (intervalResponse && intervalResponse.screenshot && intervalResponse.message) {
         bot.sendPhoto(chatId, screenshotPath, { caption: 'Here is the screenshot!' })
+        fs.unlinkSync(screenshotPath);
       }
-      fs.unlinkSync(screenshotPath);
+      if (intervalResponse && !intervalResponse.success && intervalResponse.screenshot && intervalResponse.message) {
+        bot.sendPhoto(chatId, ErrorscreenshotPath, { caption: 'Here is the screenshot!' })
+        fs.unlinkSync(ErrorscreenshotPath);
+      }
     }, 2 * 60 * 60 * 1000);
   }
   else if (data === "stop_apply") {

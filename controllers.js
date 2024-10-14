@@ -104,7 +104,7 @@ const newBrowser = async (user, url) => {
         console.log(`Attempt ${attempts} failed. Retrying...`);
         if (attempts >= maxRetries) {
           console.log("Max retries reached. Returning error.");
-          await page.screenshot({ path: "error.png" });
+          await page.screenshot({ path: "error.png", fullPage: true, captureBeyondViewport: true });
           await browser.close();
           console.log(`Failed to login on ${url.name} with the account: ${user.email}`)
           return { success: false, screenshot: true, message: `Failed to login on ${url.name} with the account: ${user.email}` };
@@ -341,7 +341,7 @@ const newBrowser = async (user, url) => {
         }
       }
       const screenshotPath = path.join(__dirname, 'screenshot.png');
-      await page.screenshot({ path: screenshotPath, fullPage: true });
+      await page.screenshot({ path: screenshotPath, fullPage: true, captureBeyondViewport: true });
       await browser.close();
       return { success: true, screenshot: true, message: `Application submitted for ${user.email} on ${url.name}. Please review the application by logging in to the account.` }
 
@@ -358,7 +358,7 @@ const newBrowser = async (user, url) => {
     if (browser) {
       await browser.close();
     }
-    page.screenshot({ path: 'error.png' })
+    page.screenshot({ path: 'error.png', fullPage: true, captureBeyondViewport: true })
     return { success: false, message: `There was an error please send this error to the developer: \n ${err}` }
   }
 
