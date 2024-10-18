@@ -133,46 +133,46 @@ async function Apply(userId, chatId) {
 
     const vfs_accounts = user.accounts;
     for (let user of vfs_accounts) {
-      for (let link of links) {
-        const response = await newBrowser(user, link);
 
-        const screenshotPath = path.join(__dirname, 'screenshot.png');
-        const ErrorscreenshotPath = path.join(__dirname, 'error.png');
+      const response = await newBrowser(user);
 
-        if (response && response.message) {
-          bot.sendMessage(chatId, response.message);
+      const screenshotPath = path.join(__dirname, 'screenshot.png');
+      const ErrorscreenshotPath = path.join(__dirname, 'error.png');
 
-        }
+      if (response && response.message) {
+        bot.sendMessage(chatId, response.message);
 
-        if (response && response.success && response.screenshot) {
-          if (fs.existsSync(screenshotPath)) {
-            bot.sendPhoto(chatId, screenshotPath)
-              .then(() => {
-                console.log("Photo sent!");
-                fs.unlinkSync(screenshotPath);
-              })
-              .catch((err) => {
-                console.error(err);
-              });
-          } else {
-            console.error('File does not exist:', screenshotPath);
-          }
-        }
-        if (response && !response.success && response.screenshot) {
-          if (fs.existsSync(ErrorscreenshotPath)) {
-            bot.sendPhoto(chatId, ErrorscreenshotPath)
-              .then(() => {
-                console.log("Photo sent!");
-                fs.unlinkSync(ErrorscreenshotPath);
-              })
-              .catch((err) => {
-                console.error(err);
-              });
-          } else {
-            console.error('File does not exist:', ErrorscreenshotPath);
-          }
+      }
+
+      if (response && response.success && response.screenshot) {
+        if (fs.existsSync(screenshotPath)) {
+          bot.sendPhoto(chatId, screenshotPath)
+            .then(() => {
+              console.log("Photo sent!");
+              fs.unlinkSync(screenshotPath);
+            })
+            .catch((err) => {
+              console.error(err);
+            });
+        } else {
+          console.error('File does not exist:', screenshotPath);
         }
       }
+      if (response && !response.success && response.screenshot) {
+        if (fs.existsSync(ErrorscreenshotPath)) {
+          bot.sendPhoto(chatId, ErrorscreenshotPath)
+            .then(() => {
+              console.log("Photo sent!");
+              fs.unlinkSync(ErrorscreenshotPath);
+            })
+            .catch((err) => {
+              console.error(err);
+            });
+        } else {
+          console.error('File does not exist:', ErrorscreenshotPath);
+        }
+      }
+
     }
     return;
   } catch (err) {
@@ -184,184 +184,114 @@ async function Apply(userId, chatId) {
 const addAccount = async (chatId, userId) => {
   bot.sendMessage(
     chatId,
-    `Please provide your details in the following format for each entry:\n
+    `Please provide your details in the following format:\n
     first_name:last_name:gender:DOB:current_nationality:passport_number:passport_expiry:date_of_departure:country_code:contact_number:email:password\n\n
-    Separate multiple entries by new lines.\nExample:\nJohn:Doe:male/other/female:26/01/1993:United States:A123456789:26/01/2025:26/01/2024:92:1234567890:john.doe@example.com:welcome123`
+    Example:\nJohn:Doe:Male:26/01/1993:United States:A123456789:26/01/2025:26/01/2024:92:1234567890:john.doe@example.com:welcome123`
   );
 
   bot.once("message", async (msg) => {
     const text = msg.text;
     const username = msg.from.first_name;
-    const entries = text.split("\n");
+    const entry = text.trim();
 
-    let invalidEntries = [];
-    let validEntries = [];
-    let existingAccount = [];
+    // Split the entry by ":" to separate fields
+    const fields = entry.split(":");
 
-    const genderRegex = /^(Male|Female|Other)$/i;
-    const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
-    const countryCodeRegex = /^\d{2}$/;
-    const contactNumberRegex = /^\d{7,}$/;
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Validation for exactly 12 fields
+    if (fields.length === 12) {
+      const [
+        firstName,
+        lastName,
+        gender,
+        dob,
+        nationality,
+        passportNumber,
+        passportExpiry,
+        departureDate,
+        countryCode,
+        contactNumber,
+        email,
+        password
+      ] = fields.map(field => field.trim());
 
+      // Validate input fields with regex
+      const genderRegex = /^(Male|Female|Other)$/i;
+      const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
+      const countryCodeRegex = /^\d{2}$/;
+      const contactNumberRegex = /^\d{7,}$/;
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    for (let entry of entries) {
-      const fields = entry.split(":");
-
-      if (fields.length === 12) {
-        const [
-          firstName,
-          lastName,
-          gender,
-          dob,
-          nationality,
-          passportNumber,
-          passportExpiry,
-          departureDate,
-          countryCode,
-          contactNumber,
-          email,
-          password
-        ] = fields.map(field => field.trim());
-
-        if (!genderRegex.test(gender)) {
-          invalidEntries.push(`Invalid gender in: ${entry}`);
-          continue;
-        }
-
-        if (!dateRegex.test(dob)) {
-          invalidEntries.push(`Invalid DOB format in: ${entry}`);
-          continue;
-        }
-
-        if (!dateRegex.test(departureDate)) {
-          invalidEntries.push(`Invalid departure date format in: ${entry}`);
-          continue;
-        }
-
-        if (!countryCodeRegex.test(countryCode)) {
-          invalidEntries.push(`Invalid country code in: ${entry}`);
-          continue;
-        }
-
-        if (!contactNumberRegex.test(contactNumber)) {
-          invalidEntries.push(`Invalid contact number in: ${entry}`);
-          continue;
-        }
-
-        if (emailRegex.test(email)) {
-          validEntries.push({
-            firstName,
-            lastName,
-            gender,
-            dob,
-            nationality,
-            passportNumber,
-            passportExpiry,
-            departureDate,
-            countryCode,
-            contactNumber,
-            email,
-            password,
-          });
-        } else {
-          invalidEntries.push(`Invalid email in: ${entry}`);
-        }
-      } else {
-        invalidEntries.push(`Incorrect number of fields in: ${entry}`);
-      }
-    }
-
-    if (validEntries.length > 0) {
-      try {
-        let user = await User.findOne({ userId });
-        if (!user) {
-          user = await User.create({ userId, name: username });
-        }
-
-        const newAccounts = [];
-        for (const entry of validEntries) {
-          existingAccount = await VFS_account.findOne({
-            email: entry.email,
-            user: user._id,
-          });
-
-          if (existingAccount) {
-            bot.sendMessage(
-              chatId,
-              `The account ${entry.email} already exists for your user ID ${userId}.`
-            );
-          } else {
-            const newAccount = await VFS_account.create({
-              firstName: entry.firstName,
-              lastName: entry.lastName,
-              gender: entry.gender,
-              dob: entry.dob,
-              nationality: entry.nationality,
-              passportNumber: entry.passportNumber,
-              passportExpiry: entry.passportExpiry,
-              departureDate: entry.departureDate,
-              countryCode: entry.countryCode,
-              contactNumber: entry.contactNumber,
-              email: entry.email,
-              password: entry.password,
-              user: user._id,
-            });
-
-            newAccounts.push(newAccount._id);
-          }
-        }
-
-        if (newAccounts.length > 0) {
-          user.accounts.push(...newAccounts);
-          await user.save();
-        }
-
-        if (newAccounts.length > 0) {
-          bot.sendMessage(
-            chatId,
-            `Successfully added the following accounts:\n${validEntries
-              .filter(
-                (entry) =>
-                  !existingAccount || entry.email !== existingAccount.email
-              )
-              .map((entry) => `- ${entry.email}`)
-              .join("\n")}`
-          );
-        }
-      } catch (error) {
-        console.error("Error saving accounts:", error);
-        bot.sendMessage(chatId, `There was an error saving your accounts: ${error}`);
+      if (!genderRegex.test(gender) || !dateRegex.test(dob) || !dateRegex.test(departureDate) || !countryCodeRegex.test(countryCode) || !contactNumberRegex.test(contactNumber) || !emailRegex.test(email)) {
+        bot.sendMessage(chatId, "There was an error with your entry. Please ensure the data is in the correct format.");
         return;
       }
-    }
 
-    if (invalidEntries.length > 0) {
-      bot.sendMessage(
-        chatId,
-        `The following entries were invalid and were not added:\n${invalidEntries.join(
-          "\n"
-        )}\nPlease ensure each entry follows the correct format and contains valid data.`
-      );
-    }
-
-    bot.sendMessage(chatId, "Would you like to add more accounts? (y/n)");
-    bot.once("message", async (response) => {
-      if (
-        response.text.toLowerCase() === "yes" ||
-        response.text.toLowerCase() === "y"
-      ) {
-        await addAccount(chatId, userId);
-      } else {
-        bot.sendMessage(
-          chatId,
-          "Okay, let me know if you need anything else!",
-          options
-        );
+      // Check if the user already exists in the database
+      let user = await User.findOne({ userId });
+      if (!user) {
+        user = await User.create({ userId, name: username });
       }
-    });
+
+      // Check if the account already exists for this user
+      const existingAccount = await VFS_account.findOne({ email, user: user._id });
+
+      if (existingAccount) {
+        bot.sendMessage(chatId, `The account with email ${email} already exists.`);
+      } else {
+        // Ask the user to select the visa link
+        const buttons = links.map((link, index) => {
+          return [{ text: link.name, callback_data: String(index) }];
+        });
+
+        bot.sendMessage(chatId, "Please select the country you want to link with this account:", {
+          reply_markup: {
+            inline_keyboard: buttons
+          }
+        });
+
+        bot.once("callback_query", async (callbackQuery) => {
+          const index = parseInt(callbackQuery.data, 10);
+          const destination = links[index];
+
+          try {
+            // Create the new account
+            const newAccount = await VFS_account.create({
+              firstName,
+              lastName,
+              gender,
+              dob,
+              nationality,
+              passportNumber,
+              passportExpiry,
+              departureDate,
+              countryCode,
+              contactNumber,
+              email,
+              password,
+              user: user._id,
+              visaLinkName: destination.name,
+              visaLink: destination.link
+            });
+
+            // Add the account to the user's list
+            user.accounts.push(newAccount._id);
+            await user.save();
+
+            bot.sendMessage(chatId, `Successfully added the account for ${email} with the visa route: ${destination.name}`);
+          } catch (error) {
+            console.error("Error saving account:", error);
+            bot.sendMessage(chatId, "There was an error saving your account.");
+          }
+        });
+      }
+    } else {
+      bot.sendMessage(chatId, "Invalid format. Please ensure your entry follows the specified format.");
+    }
   });
 };
+
+
+
 
 
 const removeAccount = async (chatId, userId) => {

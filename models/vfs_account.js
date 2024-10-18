@@ -14,6 +14,8 @@ const VfsSchema = new mongoose.Schema({
   email: { type: String, required: true },
   password: { type: String, required: true },
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  visaLinkName: { type: String, required: true },
+  visaLink: { type: String, required: true }
 }, { timestamps: true });
 
 module.exports = mongoose.model("Account", VfsSchema);

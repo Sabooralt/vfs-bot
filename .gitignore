@@ -15,3 +15,5 @@ yarn-error.log*
 .env*.local
 .env
 index.js
+check.js
+cookies.json
