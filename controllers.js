@@ -10,7 +10,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const newBrowser = async (user) => {
   const executablePath = await new Promise(resolve => locateChrome((arg) => resolve(arg))) || '/usr/bin/google-chrome';
   const { browser, page } = await connect({
-    headless: false,
+    headless: true,
     executablePath,
     ignoreDefaultArgs: ['--disable-extensions'],
     args: [
