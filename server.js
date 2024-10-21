@@ -32,6 +32,7 @@ const options = {
         { text: "Add an account", callback_data: "add_account" },
         { text: "View added accounts", callback_data: "view_accounts" },
         { text: "Remove an account", callback_data: "remove_account" },
+        { text: "Toggle account status (disable/enable)", callback_data: "toggle_account" },
       ],
       [{ text: "Apply for Visa", callback_data: "apply" }],
       [{ text: 'Stop Applying', callback_data: 'stop_apply' }],
@@ -87,18 +88,9 @@ bot.on("callback_query", async (callbackQuery) => {
     const response = await Apply(userId, chatId);
 
 
-    if (response && response.message) {
-
-      bot.sendMessage(chatId, response.message);
-    }
-
-
 
     applyInterval = setInterval(async () => {
       const intervalResponse = await Apply(userId, chatId);
-      if (intervalResponse && intervalResponse.message) {
-        bot.sendMessage(chatId, intervalResponse.message);
-      }
 
     }, 2 * 60 * 60 * 1000);
   }
@@ -112,13 +104,19 @@ bot.on("callback_query", async (callbackQuery) => {
     }
   } else if (data === "remove_account") {
     await removeAccount(chatId, userId)
+  } else if (data === "toggle_account") {
+    await toggleAccountStatus(chatId, userId)
   }
 });
 
 async function Apply(userId, chatId) {
   try {
 
-    const user = await User.findOne({ userId }).populate("accounts");
+    const user = await User.findOne({ userId })
+      .populate({
+        path: "accounts",
+        match: { disabled: false }
+      });
 
     if (!user) {
 
@@ -134,43 +132,11 @@ async function Apply(userId, chatId) {
     const vfs_accounts = user.accounts;
     for (let user of vfs_accounts) {
 
-      const response = await newBrowser(user);
-
-      const screenshotPath = path.join(__dirname, 'screenshot.png');
-      const ErrorscreenshotPath = path.join(__dirname, 'error.png');
+      const response = await newBrowser(user, bot, chatId);
 
       if (response && response.message) {
         bot.sendMessage(chatId, response.message);
 
-      }
-
-      if (response && response.success && response.screenshot) {
-        if (fs.existsSync(screenshotPath)) {
-          bot.sendPhoto(chatId, screenshotPath)
-            .then(() => {
-              console.log("Photo sent!");
-              fs.unlinkSync(screenshotPath);
-            })
-            .catch((err) => {
-              console.error(err);
-            });
-        } else {
-          console.error('File does not exist:', screenshotPath);
-        }
-      }
-      if (response && !response.success && response.screenshot) {
-        if (fs.existsSync(ErrorscreenshotPath)) {
-          bot.sendPhoto(chatId, ErrorscreenshotPath)
-            .then(() => {
-              console.log("Photo sent!");
-              fs.unlinkSync(ErrorscreenshotPath);
-            })
-            .catch((err) => {
-              console.error(err);
-            });
-        } else {
-          console.error('File does not exist:', ErrorscreenshotPath);
-        }
       }
 
     }
@@ -194,10 +160,8 @@ const addAccount = async (chatId, userId) => {
     const username = msg.from.first_name;
     const entry = text.trim();
 
-    // Split the entry by ":" to separate fields
     const fields = entry.split(":");
 
-    // Validation for exactly 12 fields
     if (fields.length === 12) {
       const [
         firstName,
@@ -214,7 +178,6 @@ const addAccount = async (chatId, userId) => {
         password
       ] = fields.map(field => field.trim());
 
-      // Validate input fields with regex
       const genderRegex = /^(Male|Female|Other)$/i;
       const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
       const countryCodeRegex = /^\d{2}$/;
@@ -226,19 +189,16 @@ const addAccount = async (chatId, userId) => {
         return;
       }
 
-      // Check if the user already exists in the database
       let user = await User.findOne({ userId });
       if (!user) {
         user = await User.create({ userId, name: username });
       }
 
-      // Check if the account already exists for this user
       const existingAccount = await VFS_account.findOne({ email, user: user._id });
 
       if (existingAccount) {
         bot.sendMessage(chatId, `The account with email ${email} already exists.`);
       } else {
-        // Ask the user to select the visa link
         const buttons = links.map((link, index) => {
           return [{ text: link.name, callback_data: String(index) }];
         });
@@ -253,35 +213,84 @@ const addAccount = async (chatId, userId) => {
           const index = parseInt(callbackQuery.data, 10);
           const destination = links[index];
 
-          try {
-            // Create the new account
-            const newAccount = await VFS_account.create({
-              firstName,
-              lastName,
-              gender,
-              dob,
-              nationality,
-              passportNumber,
-              passportExpiry,
-              departureDate,
-              countryCode,
-              contactNumber,
-              email,
-              password,
-              user: user._id,
-              visaLinkName: destination.name,
-              visaLink: destination.link
+          const appCenterButtons = [
+            [{ text: "1", callback_data: "0" }],
+            [{ text: "2", callback_data: "1" }],
+            [{ text: "3", callback_data: "2" }]
+          ];
+
+          bot.sendMessage(chatId, "Please select the Application Center:", {
+            reply_markup: {
+              inline_keyboard: appCenterButtons
+            }
+          });
+
+          bot.once("callback_query", (appCenterCallback) => {
+            const appCenterIndex = parseInt(appCenterCallback.data, 10);
+
+            const appCategoryButtons = [
+              [{ text: "1", callback_data: "0" }],
+              [{ text: "2", callback_data: "1" }],
+              [{ text: "3", callback_data: "2" }]
+            ];
+
+            bot.sendMessage(chatId, "Please select the Appointment Category:", {
+              reply_markup: {
+                inline_keyboard: appCategoryButtons
+              }
             });
 
-            // Add the account to the user's list
-            user.accounts.push(newAccount._id);
-            await user.save();
+            bot.once("callback_query", (appCategoryCallback) => {
+              const appCategoryIndex = parseInt(appCategoryCallback.data, 10);
 
-            bot.sendMessage(chatId, `Successfully added the account for ${email} with the visa route: ${destination.name}`);
-          } catch (error) {
-            console.error("Error saving account:", error);
-            bot.sendMessage(chatId, "There was an error saving your account.");
-          }
+              const subCategoryButtons = [
+                [{ text: "1", callback_data: "0" }],
+                [{ text: "2", callback_data: "1" }],
+                [{ text: "3", callback_data: "2" }]
+              ];
+
+              bot.sendMessage(chatId, "Please select the Sub-Category:", {
+                reply_markup: {
+                  inline_keyboard: subCategoryButtons
+                }
+              });
+
+              bot.once("callback_query", async (subCategoryCallback) => {
+                const subCategoryIndex = parseInt(subCategoryCallback.data, 10);
+
+                try {
+                  const newAccount = await VFS_account.create({
+                    firstName,
+                    lastName,
+                    gender,
+                    dob,
+                    nationality,
+                    passportNumber,
+                    passportExpiry,
+                    departureDate,
+                    countryCode,
+                    contactNumber,
+                    email,
+                    password,
+                    user: user._id,
+                    visaLinkName: destination.name,
+                    visaLink: destination.link,
+                    applicationCenter: appCenterIndex,
+                    appointmentCategory: appCategoryIndex,
+                    subCategory: subCategoryIndex
+                  });
+
+                  user.accounts.push(newAccount._id);
+                  await user.save();
+
+                  bot.sendMessage(chatId, `Successfully added the account for ${email} with the visa route: ${destination.name}`);
+                } catch (error) {
+                  console.error("Error saving account:", error);
+                  bot.sendMessage(chatId, "There was an error saving your account.");
+                }
+              });
+            });
+          });
         });
       }
     } else {
@@ -298,7 +307,7 @@ const removeAccount = async (chatId, userId) => {
   bot.sendMessage(chatId, "Please provide the ID of the account you wish to remove.");
 
   bot.once("message", async (msg) => {
-    const accountId = msg.text;
+    const accountId = msg.text.trim();
 
     if (!accountId) {
       bot.sendMessage(chatId, "Invalid input. Please provide a valid account ID.");
@@ -329,6 +338,43 @@ const removeAccount = async (chatId, userId) => {
     } catch (error) {
       console.error("Error removing account:", error);
       bot.sendMessage(chatId, "There was an error removing the account. Please try again.");
+    }
+  });
+};
+const toggleAccountStatus = async (chatId, userId) => {
+  bot.sendMessage(chatId, "Please provide the ID of the account you wish to toggle.");
+
+  bot.once("message", async (msg) => {
+    const accountId = msg.text.trim();
+
+    if (!accountId) {
+      bot.sendMessage(chatId, "Invalid input. Please provide a valid account ID.");
+      return;
+    }
+
+    try {
+      const user = await User.findOne({ userId });
+
+      if (!user) {
+        bot.sendMessage(chatId, "User not found. Please try again.");
+        return;
+      }
+
+      const account = await VFS_account.findOne({ _id: accountId, user: user._id });
+
+      if (!account) {
+        bot.sendMessage(chatId, "Account not found or it doesn't belong to you.");
+        return;
+      }
+
+      account.disabled = !account.disabled;
+      await account.save();
+
+      const status = account.disabled ? 'disabled' : 'enabled';
+      bot.sendMessage(chatId, `Successfully ${status} the account: ${account.email}`);
+    } catch (error) {
+      console.error("Error toggling account status:", error);
+      bot.sendMessage(chatId, "There was an error toggling the account status. Please try again.");
     }
   });
 };
