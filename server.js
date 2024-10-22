@@ -76,7 +76,7 @@ bot.on("callback_query", async (callbackQuery) => {
       const accountList = accounts
         .map(
           (account, index) =>
-            `${index + 1}. Id: ${account._id} \n Email: ${account.email} - Password: ${account.password} \n Gender: ${account.gender} - DOB: ${account.dob} \n Nationality: ${account.nationality} \n Passport Number: ${account.passportNumber} - Passport Expiry: ${account.passportExpiry} \n Departure Date: ${account.departureDate} \n Country Code: ${account.countryCode} - Contact Number: ${account.contactNumber}`
+            `${index + 1}. Id: ${account._id} \n Email: ${account.email} - Password: ${account.password} \n Gender: ${account.gender} - DOB: ${account.dob} \n Nationality: ${account.nationality} \n Passport Number: ${account.passportNumber} - Passport Expiry: ${account.passportExpiry} \n Departure Date: ${account.departureDate} \n Country Code: ${account.countryCode} - Contact Number: ${account.contactNumber} \n Applying to: ${account.visaLinkName} \n Application Center: ${account.applicationCenter + 1} - Appoinment Category: ${account.appointmentCategory + 1} - Sub Category: ${account.subCategory + 1} \n Status: ${account.disabled ? "Disabled" : "Enabled"}`
         )
         .join("\n");
       bot.sendMessage(chatId, `Your added VFS accounts:\n${accountList}`);
